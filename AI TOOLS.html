@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Resume Evaluator</title>
+
+<style>
+:root {
+    --bg-main: #020617;
+    --bg-panel: #0b1220;
+    --bg-input: #020617;
+    --neon-blue: #00e5ff;
+    --neon-blue-soft: rgba(0, 229, 255, 0.25);
+    --text-main: #e5e7eb;
+    --text-muted: #9ca3af;
+    --border-soft: rgba(255,255,255,0.08);
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: 'Inter', 'Segoe UI', sans-serif;
+    background: radial-gradient(circle at top, #0f172a, #020617);
+    color: var(--text-main);
+}
+
+/* Header */
+header {
+    padding: 18px 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-soft);
+}
+
+header h1 {
+    color: var(--neon-blue);
+    text-shadow: 0 0 12px var(--neon-blue-soft);
+}
+
+.header-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.header-buttons button {
+    background: transparent;
+    border: 1px solid var(--neon-blue-soft);
+    color: var(--neon-blue);
+    padding: 8px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+/* Dashboard */
+.dashboard {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    padding: 70px 20px;
+}
+
+.dash-button {
+    padding: 26px 55px;
+    font-size: 1.35rem;
+    border-radius: 18px;
+    border: 1px solid var(--neon-blue-soft);
+    background: #020617;
+    color: var(--neon-blue);
+    cursor: pointer;
+}
+
+/* Sections */
+section { display: none; padding: 30px; }
+section.active { display: flex; justify-content: center; }
+
+.panel {
+    max-width: 1100px;
+    width: 100%;
+    background: #020617;
+    padding: 30px;
+    border-radius: 20px;
+    border: 1px solid var(--border-soft);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+label { color: var(--text-muted); font-weight: 600; }
+
+textarea {
+    background: var(--bg-input);
+    color: var(--text-main);
+    border: 1px solid var(--border-soft);
+    border-radius: 14px;
+    padding: 14px;
+    min-height: 160px;
+}
+
+button.action-btn {
+    background: linear-gradient(145deg, #00e5ff, #00bcd4);
+    color: #020617;
+    border: none;
+    padding: 12px 26px;
+    font-weight: 700;
+    border-radius: 12px;
+    cursor: pointer;
+    width: fit-content;
+}
+
+#promptOutputEval,
+#promptOutputSummary {
+    min-height: 260px;
+    padding: 20px;
+    border-radius: 16px;
+    background: #020617;
+    border: 1px solid var(--border-soft);
+    white-space: pre-wrap;
+    font-family: monospace;
+}
+
+/* Neon glow effect */
+button {
+    transition: all 0.25s ease;
+}
+
+button:hover {
+    box-shadow:
+        0 0 6px var(--neon-blue),
+        0 0 12px var(--neon-blue),
+        0 0 24px var(--neon-blue-soft),
+        0 0 48px var(--neon-blue-soft);
+    transform: translateY(-2px);
+}
+
+button:active {
+    box-shadow:
+        0 0 10px var(--neon-blue),
+        0 0 20px var(--neon-blue),
+        0 0 40px var(--neon-blue-soft),
+        inset 0 0 12px var(--neon-blue);
+    transform: scale(0.97);
+}
+
+@media (max-width: 900px) {
+    section.active { padding: 20px; }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>AI Resume Evaluator</h1>
+    <div class="header-buttons">
+        <button onclick="openChatGPT()">Open ChatGPT</button>
+        <button onclick="showDashboard()">Dashboard</button>
+        <button id="clearBtn" onclick="clearAll()">Clear</button>
+    </div>
+</header>
+
+<div class="dashboard" id="dashboardView">
+    <button class="dash-button" onclick="showSection('evaluate')">Evaluate Resume</button>
+    <button class="dash-button" onclick="showSection('summary')">Generate Summary</button>
+</div>
+
+<section id="evaluate">
+<div class="panel">
+<label>Job Description</label>
+<textarea id="jobDescEval"></textarea>
+
+<label>Candidate Resume</label>
+<textarea id="resumeEval"></textarea>
+
+<button class="action-btn" onclick="generateEvalPrompt()">Generate Prompt</button>
+<button class="action-btn" onclick="copyAndOpenChatGPT('promptOutputEval')">Copy & Open ChatGPT</button>
+
+<div id="promptOutputEval">Generated prompt will appear here...</div>
+</div>
+</section>
+
+<section id="summary">
+<div class="panel">
+<label>Job Description</label>
+<textarea id="jobDescSummary"></textarea>
+
+<label>Candidate Resume</label>
+<textarea id="resumeSummary"></textarea>
+
+<button class="action-btn" onclick="generateSummaryPrompt()">Generate Summary Prompt</button>
+<button class="action-btn" onclick="copyAndOpenChatGPT('promptOutputSummary')">Copy & Open ChatGPT</button>
+
+<div id="promptOutputSummary">Generated summary prompt will appear here...</div>
+</div>
+</section>
+
+<script>
+const clearBtn = document.getElementById('clearBtn');
+
+function showDashboard() {
+    document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
+    document.getElementById('dashboardView').style.display = 'flex';
+    clearBtn.style.display = 'none';
+}
+
+function showSection(id) {
+    document.getElementById('dashboardView').style.display = 'none';
+    document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    clearBtn.style.display = 'inline-block';
+}
+
+function clearAll() {
+    document.querySelectorAll('textarea').forEach(t => t.value = '');
+}
+
+function generateEvalPrompt() {
+    const jd = jobDescEval.value.trim();
+    const r = resumeEval.value.trim();
+    if (!jd || !r) return alert("Fill both fields");
+
+    promptOutputEval.textContent =
+`You are an experienced recruiter. Evaluate the candidate's resume against the job description:
+
+Job Description:
+${jd}
+
+Candidate Resume:
+${r}
+
+Instructions:
+- Identify strong matches and gaps
+- Assess overall fit
+- Provide a short recommendation
+- Estimate how well the candidate fits the role as a percentage (0–100%) and explain briefly why`;
+}
+
+function generateSummaryPrompt() {
+    const jd = jobDescSummary.value.trim();
+    const r = resumeSummary.value.trim();
+    if (!jd || !r) return alert("Fill both fields");
+
+    promptOutputSummary.textContent =
+`You are an AI assistant. Generate a summary from the candidate's resume based on the job description:
+
+Job Description:
+${jd}
+
+Candidate Resume:
+${r}
+
+Instructions:
+- Summarize key skills
+- Highlight relevant experience
+- Include recommendations
+- Provide an estimated job fit percentage (0–100%) with a short justification`;
+}
+
+function copyAndOpenChatGPT(outputId) {
+    const text = document.getElementById(outputId).textContent.trim();
+    if (!text) return alert("Generate prompt first");
+
+    navigator.clipboard.writeText(text).then(() => {
+        openChatGPT();
+        alert("Prompt copied!\nPaste into ChatGPT (Ctrl+V / Cmd+V)");
+    });
+}
+
+function openChatGPT() {
+    window.open("https://chat.openai.com/", "_blank");
+}
+
+showDashboard();
+</script>
+
+</body>
+</html>
